@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.4.0] - 2026-02-03
+
+### Added
+- **Artemis datasvc integration** for live preferred stock prices
+- New `usePreferredPrices` hook fetches STRF, STRC, STRK, STRD, SATA prices
+- Serverless function proxy at `/api/datasvc/[...path].ts` with JWT auth
+- `npm run dev:vercel` command for local development with serverless functions
+
+### Changed
+- Preferred prices now fetched from Artemis datasvc API (60s refresh)
+- Strive BTC holdings default updated to reflect actual treasury (~28 BTC)
+
+### Technical
+- Added `jose` package for JWT signing
+- Environment variable `ARTEMIS_ENCRYPTED_TOKEN_SEED` required for preferred prices
+
+---
+
 ## [0.3.0] - 2026-02-03
 
 ### Added

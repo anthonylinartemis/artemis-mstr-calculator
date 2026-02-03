@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useMSTRData } from './hooks/useMSTRData';
+import { usePreferredPrices } from './hooks/usePreferredPrices';
 
 // Types
 interface DebtItem {
@@ -25,15 +26,15 @@ const INITIAL_DEBT: DebtItem[] = [
 ];
 
 const INITIAL_PREF: PrefItem[] = [
-  { ticker: 'STRF', notional: 1284, price: 85.50, change: -2.3 },
-  { ticker: 'STRC', notional: 3379, price: 92.10, change: -1.8 },
-  { ticker: 'STRK', notional: 1402, price: 78.25, change: -3.1 },
-  { ticker: 'STRD', notional: 1402, price: 88.00, change: -2.5 },
+  { ticker: 'STRF', notional: 1284 },
+  { ticker: 'STRC', notional: 3379 },
+  { ticker: 'STRK', notional: 1402 },
+  { ticker: 'STRD', notional: 1402 },
 ];
 
 // Strive Initial data (ASST)
 const STRIVE_INITIAL_PREF: PrefItem[] = [
-  { ticker: 'SATA', notional: 500, price: 95.00, change: -1.5 },
+  { ticker: 'SATA', notional: 500 },
 ];
 
 function formatCurrency(value: number): string {
@@ -44,6 +45,7 @@ type TabType = 'mstr' | 'strive';
 
 function App() {
   const { data, isLoading } = useMSTRData();
+  const { prices: livePrices, isLoading: pricesLoading } = usePreferredPrices();
 
   // Tab state
   const [activeTab, setActiveTab] = useState<TabType>('mstr');
@@ -61,9 +63,9 @@ function App() {
   const [debt, setDebt] = useState<DebtItem[]>(INITIAL_DEBT);
   const [pref, setPref] = useState<PrefItem[]>(INITIAL_PREF);
 
-  // Strive data
-  const [striveBtcHoldings, setStriveBtcHoldings] = useState(50); // in thousands
-  const [striveUsdReserve, setStriveUsdReserve] = useState(100);
+  // Strive data - BTC holdings per treasury.strive.com (in thousands)
+  const [striveBtcHoldings, setStriveBtcHoldings] = useState(0.028); // ~28 BTC
+  const [striveUsdReserve, setStriveUsdReserve] = useState(0);
   const [strivePref, setStrivePref] = useState<PrefItem[]>(STRIVE_INITIAL_PREF);
 
   // Update from live data
@@ -77,6 +79,35 @@ function App() {
       setBtcHoldings(holdings);
     }
   }, [data]);
+
+  // Merge live prices into pref items
+  const prefWithPrices = useMemo(() => {
+    return pref.map((p) => {
+      const livePrice = livePrices[p.ticker];
+      if (livePrice) {
+        return {
+          ...p,
+          price: livePrice.price,
+          change: livePrice.change,
+        };
+      }
+      return p;
+    });
+  }, [pref, livePrices]);
+
+  const strivePrefWithPrices = useMemo(() => {
+    return strivePref.map((p) => {
+      const livePrice = livePrices[p.ticker];
+      if (livePrice) {
+        return {
+          ...p,
+          price: livePrice.price,
+          change: livePrice.change,
+        };
+      }
+      return p;
+    });
+  }, [strivePref, livePrices]);
 
   // MSTR Calculations
   const btcValueM = useMemo(() => (btcPrice * btcHoldings * 1000) / 1_000_000, [btcPrice, btcHoldings]);
@@ -95,12 +126,12 @@ function App() {
 
   const prefWithCumulative = useMemo(() => {
     let cumulative = totalDebt;
-    return pref.map((p) => {
+    return prefWithPrices.map((p) => {
       cumulative += p.notional;
       const coverage = (btcValueM + usdReserve) / cumulative;
       return { ...p, cumulative, coverage };
     });
-  }, [pref, totalDebt, btcValueM, usdReserve]);
+  }, [prefWithPrices, totalDebt, btcValueM, usdReserve]);
 
   const totalCoverage = (btcValueM + usdReserve) / totalDebtPref;
 
@@ -113,12 +144,12 @@ function App() {
 
   const strivePrefWithCumulative = useMemo(() => {
     let cumulative = 0;
-    return strivePref.map((p) => {
+    return strivePrefWithPrices.map((p) => {
       cumulative += p.notional;
       const coverage = (striveBtcValueM + striveUsdReserve) / cumulative;
       return { ...p, cumulative, coverage };
     });
-  }, [strivePref, striveBtcValueM, striveUsdReserve]);
+  }, [strivePrefWithPrices, striveBtcValueM, striveUsdReserve]);
 
   const striveTotalCoverage = striveTotalPref > 0 ? (striveBtcValueM + striveUsdReserve) / striveTotalPref : 0;
 
@@ -196,6 +227,7 @@ function App() {
                 </div>
               </div>
               {isLoading && <span className="text-gray-500 text-xs">(updating...)</span>}
+              {pricesLoading && <span className="text-gray-500 text-xs ml-2">(loading prices...)</span>}
             </div>
 
             {/* Assumptions Section */}
