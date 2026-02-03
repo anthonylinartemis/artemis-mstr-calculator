@@ -100,22 +100,17 @@ function App() {
   const [striveUsdReserve, setStriveUsdReserve] = useState(24); // $24M USD reserve
   const [strivePref, setStrivePref] = useState<PrefItem[]>(STRIVE_INITIAL_PREF);
 
-  // Update from live data with sanity check
+  // Update from live API data (BTC price + MSTR holdings)
   useEffect(() => {
     if (data) {
       const price = Math.round(data.btcPrice);
       const holdings = Math.round(data.btcHoldings / 1000);
 
-      // Always use live BTC price
+      // Use live data from MicroStrategy API
       setActualBtcPrice(price);
       setBtcPrice(price);
-
-      // Only use API holdings if it's reasonable (Strategy has 471k+ BTC as of Feb 2026)
-      // API sometimes returns stale data
-      if (holdings >= 450) {
-        setActualBtcHoldings(holdings);
-        setBtcHoldings(holdings);
-      }
+      setActualBtcHoldings(holdings);
+      setBtcHoldings(holdings);
     }
   }, [data]);
 
@@ -413,15 +408,31 @@ function App() {
         <>
           {/* Strive Tab */}
           <div className="flex items-start gap-8 mb-6 flex-wrap">
+            {/* Strive Actuals (Live) */}
+            <div className="bg-[#252540] rounded p-3 border border-gray-600">
+              <div className="text-xs text-gray-400 mb-2 uppercase tracking-wider">Actuals (Live)</div>
+              <div className="flex gap-4">
+                <div>
+                  <span className="text-gray-400 text-sm">BTC Price: </span>
+                  <span className="text-green-400 font-medium">${actualBtcPrice.toLocaleString()}</span>
+                </div>
+                {livePrices['SATA'] && (
+                  <div>
+                    <span className="text-gray-400 text-sm">SATA: </span>
+                    <span className="text-green-400 font-medium">${livePrices['SATA'].price.toFixed(2)}</span>
+                    <span className={livePrices['SATA'].change && livePrices['SATA'].change < 0 ? 'text-red-400 ml-1 text-sm' : 'text-green-400 ml-1 text-sm'}>
+                      ({livePrices['SATA'].change && livePrices['SATA'].change > 0 ? '+' : ''}{livePrices['SATA'].change?.toFixed(1)}%)
+                    </span>
+                  </div>
+                )}
+              </div>
+              {pricesLoading && <span className="text-gray-500 text-xs">(loading prices...)</span>}
+            </div>
+
             {/* Strive Assumptions */}
             <div className="bg-[#252540] rounded p-3 border border-gray-600">
-              <div className="text-xs text-gray-400 mb-2 uppercase tracking-wider">Strive (ASST) Assumptions</div>
+              <div className="text-xs text-gray-400 mb-2 uppercase tracking-wider">Assumptions</div>
               <div className="flex gap-4 items-center">
-                <div className="flex items-center gap-1">
-                  <span className="text-gray-400 text-sm">BTC Price $</span>
-                  <span className="text-green-400 font-medium">{btcPrice.toLocaleString()}</span>
-                  <span className="text-gray-500 text-xs">(from MSTR)</span>
-                </div>
                 <div className="flex items-center gap-1">
                   <span className="text-gray-400 text-sm">Holdings</span>
                   <input

@@ -75,7 +75,7 @@ export const PREFERRED_INSTRUMENTS: PreferredInstrument[] = [
 // Holdings updated per Strategy.com/btc as of Feb 2026
 export const DEFAULT_ASSUMPTIONS = {
   btcPrice: 97000,
-  btcHoldings: 471107,
+  btcHoldings: 471107, // ~471K BTC per Strategy.com/btc
   btcVolatility: 0.60, // 60% annualized
   btcArr: 0.25, // 25% expected annual return
 };
