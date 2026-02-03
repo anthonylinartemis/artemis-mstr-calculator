@@ -25,7 +25,6 @@ const INITIAL_DEBT: DebtItem[] = [
 const INITIAL_PREF: PrefItem[] = [
   { ticker: 'STRF', notional: 1284 },
   { ticker: 'STRC', notional: 3379 },
-  { ticker: 'STRE', notional: 914 },
   { ticker: 'STRK', notional: 1402 },
   { ticker: 'STRD', notional: 1402 },
 ];

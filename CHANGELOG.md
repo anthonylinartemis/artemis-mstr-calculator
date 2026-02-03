@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1] - 2026-02-03
+
+### Removed
+- STRE from preferred stocks (MSTR doesn't show it)
+
+---
+
 ## [0.2.0] - 2026-02-03
 
 ### Changed
