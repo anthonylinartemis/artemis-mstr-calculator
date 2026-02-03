@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.3.0] - 2026-02-03
+
+### Added
+- **Strive (ASST) tab** with SATA preferred coverage calculator
+- **Actuals vs Assumptions split**: Live data shown separately from editable assumptions
+- **Reset button** to restore assumptions to actuals
+- **Preferred stock prices** with 1-day change (STRF, STRC, STRK, STRD, SATA)
+- USD Reserve now in a styled box above debt table
+- Table columns now properly aligned with fixed widths
+
+### Changed
+- BTC price and holdings refresh from live API (60s interval)
+- Total rows now visually distinct with yellow border
+- Strive uses same BTC price as MSTR tab
+
+---
+
 ## [0.2.1] - 2026-02-03
 
 ### Removed
