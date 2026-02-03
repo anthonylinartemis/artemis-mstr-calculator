@@ -1,23 +1,58 @@
-import type { MSTRKpiData, BitcoinKpis } from '../types';
-import { API_ENDPOINTS } from './constants';
+import { API_ENDPOINTS, DEFAULT_ASSUMPTIONS } from './constants';
+
+/**
+ * Parse number from API response (handles strings with commas)
+ */
+function parseApiNumber(value: string | number): number {
+  if (typeof value === 'number') return value;
+  return parseFloat(value.replace(/,/g, '')) || 0;
+}
+
+/**
+ * Raw API response types (as returned by MicroStrategy)
+ */
+interface RawMSTRKpiData {
+  company: string;
+  price: string;
+  ufPrice: number;
+  marketCap: string;
+  debt: string;
+  pref: string;
+  debtByMc: number;
+  historicVolatility: number;
+}
+
+interface RawBitcoinKpis {
+  results: {
+    latestPrice: number;
+    btcHoldings: string;
+    btcNav: string;
+    btcNavNumber: number;
+    debtByBN: number;
+    prefByBN: number;
+  };
+  timestamp: string;
+}
 
 /**
  * Fetch MSTR KPI data from MicroStrategy API
  */
-export async function fetchMSTRKpiData(): Promise<MSTRKpiData> {
+async function fetchMSTRKpiData(): Promise<RawMSTRKpiData> {
   const response = await fetch(API_ENDPOINTS.MSTR_KPI);
 
   if (!response.ok) {
     throw new Error(`MSTR API error: ${response.status}`);
   }
 
-  return response.json();
+  const data = await response.json();
+  // API returns an array, take the first element
+  return Array.isArray(data) ? data[0] : data;
 }
 
 /**
  * Fetch Bitcoin KPI data from MicroStrategy API
  */
-export async function fetchBitcoinKpis(): Promise<BitcoinKpis> {
+async function fetchBitcoinKpis(): Promise<RawBitcoinKpis> {
   const response = await fetch(API_ENDPOINTS.BTC_KPI);
 
   if (!response.ok) {
@@ -30,7 +65,7 @@ export async function fetchBitcoinKpis(): Promise<BitcoinKpis> {
 /**
  * Fetch BTC price from Artemis API (fallback)
  */
-export async function fetchArtemisBtcPrice(): Promise<number> {
+async function fetchArtemisBtcPrice(): Promise<number> {
   const apiKey = import.meta.env.VITE_ARTEMIS_API_KEY;
 
   if (!apiKey) {
@@ -52,7 +87,7 @@ export async function fetchArtemisBtcPrice(): Promise<number> {
 }
 
 /**
- * Combined data fetcher with fallback logic
+ * Combined data interface (normalized)
  */
 export interface CombinedData {
   btcPrice: number;
@@ -66,6 +101,9 @@ export interface CombinedData {
   source: 'microstrategy' | 'artemis' | 'mixed';
 }
 
+/**
+ * Fetch and normalize data from MicroStrategy APIs
+ */
 export async function fetchCombinedData(): Promise<CombinedData> {
   try {
     // Try MicroStrategy APIs first
@@ -74,15 +112,17 @@ export async function fetchCombinedData(): Promise<CombinedData> {
       fetchBitcoinKpis(),
     ]);
 
+    const btcResults = btcData.results;
+
     return {
-      btcPrice: btcData.latestPrice,
-      btcHoldings: btcData.btcHoldings,
-      mstrPrice: mstrData.price,
-      mstrMarketCap: mstrData.marketCap,
-      totalDebt: mstrData.debt,
-      totalPreferred: mstrData.pref,
-      historicVolatility: mstrData.historicVolatility,
-      btcNav: btcData.btcNav,
+      btcPrice: btcResults.latestPrice,
+      btcHoldings: parseApiNumber(btcResults.btcHoldings),
+      mstrPrice: parseApiNumber(mstrData.price),
+      mstrMarketCap: parseApiNumber(mstrData.marketCap) * 1_000_000, // API returns in millions
+      totalDebt: parseApiNumber(mstrData.debt), // in millions
+      totalPreferred: parseApiNumber(mstrData.pref), // in millions
+      historicVolatility: mstrData.historicVolatility / 100, // Convert from percentage
+      btcNav: btcResults.btcNavNumber * 1_000_000_000, // API returns in billions
       source: 'microstrategy',
     };
   } catch (mstrError) {
@@ -91,16 +131,16 @@ export async function fetchCombinedData(): Promise<CombinedData> {
     try {
       const btcPrice = await fetchArtemisBtcPrice();
 
-      // Return partial data with Artemis BTC price
+      // Return partial data with Artemis BTC price and defaults
       return {
         btcPrice,
-        btcHoldings: 471107, // Default from constants
+        btcHoldings: DEFAULT_ASSUMPTIONS.btcHoldings,
         mstrPrice: 0,
         mstrMarketCap: 0,
-        totalDebt: 7860, // Sum of debt instruments
-        totalPreferred: 1147, // Sum of preferred instruments
-        historicVolatility: 0.60,
-        btcNav: btcPrice * 471107,
+        totalDebt: 8244, // Sum of debt instruments from latest API
+        totalPreferred: 8389, // Sum of preferred instruments
+        historicVolatility: DEFAULT_ASSUMPTIONS.btcVolatility,
+        btcNav: btcPrice * DEFAULT_ASSUMPTIONS.btcHoldings,
         source: 'artemis',
       };
     } catch (artemisError) {

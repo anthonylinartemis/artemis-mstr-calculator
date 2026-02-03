@@ -71,10 +71,10 @@ export const PREFERRED_INSTRUMENTS: PreferredInstrument[] = [
   },
 ];
 
-// Default assumptions
+// Default assumptions (fallback if API fails)
 export const DEFAULT_ASSUMPTIONS = {
-  btcPrice: 100000,
-  btcHoldings: 471107,
+  btcPrice: 75000,
+  btcHoldings: 713502,
   btcVolatility: 0.60, // 60% annualized
   btcArr: 0.25, // 25% expected annual return
 };
@@ -91,7 +91,7 @@ export const REFRESH_INTERVAL = 60 * 1000;
 
 // Sensitivity matrix ranges
 export const SENSITIVITY_HOLDINGS_RANGE = [
-  300000, 400000, 471107, 550000, 650000, 750000,
+  500000, 600000, 713502, 800000, 900000, 1000000,
 ];
 
 export const SENSITIVITY_PRICE_RANGE = [

@@ -1,21 +1,3 @@
-// API Response Types
-export interface MSTRKpiData {
-  price: number;
-  marketCap: number;
-  debt: number;
-  pref: number;
-  debtByMc: number;
-  historicVolatility: number;
-}
-
-export interface BitcoinKpis {
-  latestPrice: number;
-  btcHoldings: number;
-  btcNav: number;
-  debtByBN: number;
-  prefByBN: number;
-}
-
 // Instrument Types
 export interface DebtInstrument {
   id: string;
