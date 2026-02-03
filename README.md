@@ -1,73 +1,60 @@
-# React + TypeScript + Vite
+# MSTR BTC Treasury Calculator
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A BTC treasury coverage calculator inspired by [Strategy.com](https://www.strategy.com), built with React + TypeScript.
 
-Currently, two official plugins are available:
+Analyze MicroStrategy's debt and preferred stock coverage using live data from the MicroStrategy API.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Features
 
-## React Compiler
+- **Live Data**: Auto-refreshes every 60 seconds from MicroStrategy's public API
+- **Editable Assumptions**: Adjust BTC price, holdings, volatility, and expected ARR
+- **Debt Coverage Table**: Convertible notes with cumulative coverage ratios
+- **Preferred Stock Table**: STRF/STRK with dividend calculations
+- **Sensitivity Matrix**: Heatmap showing coverage across holdings × price scenarios
+- **Dark Theme**: Strategy-inspired orange/black aesthetic
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Quick Start
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Open [http://localhost:5173](http://localhost:5173)
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Deploy to Vercel
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm run build
+vercel --prod
 ```
+
+Or connect the GitHub repo directly to Vercel for automatic deployments.
+
+## Data Sources
+
+**Primary:** MicroStrategy Public API (no auth required)
+- `https://api.microstrategy.com/btc/mstrKpiData`
+- `https://api.microstrategy.com/btc/bitcoinKpis`
+
+**Fallback:** Artemis API (requires `VITE_ARTEMIS_API_KEY` env var)
+
+## Tech Stack
+
+- Vite + React 18
+- TypeScript (strict mode)
+- Tailwind CSS
+- SWR for data fetching
+
+## Key Metrics
+
+| Metric | Formula |
+|--------|---------|
+| BTC NAV | Holdings × Price |
+| Coverage | NAV / Cumulative Notional |
+| BTC Years of Dividends | NAV / Annual Dividend Obligation |
+| Breakeven ARR | Total Obligations / NAV / Avg Duration |
+
+## License
+
+MIT
