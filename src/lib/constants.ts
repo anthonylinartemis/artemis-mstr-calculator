@@ -79,11 +79,11 @@ export const DEFAULT_ASSUMPTIONS = {
   btcArr: 0.25, // 25% expected annual return
 };
 
-// API endpoints
+// API endpoints - always use proxy to avoid CORS (dev: Vite proxy, prod: Vercel functions)
 export const API_ENDPOINTS = {
-  MSTR_KPI: 'https://api.microstrategy.com/btc/mstrKpiData',
-  BTC_KPI: 'https://api.microstrategy.com/btc/bitcoinKpis',
-  ARTEMIS_PRICE: 'https://api.artemis.xyz/asset/price',
+  MSTR_KPI: '/api/microstrategy/btc/mstrKpiData',
+  BTC_KPI: '/api/microstrategy/btc/bitcoinKpis',
+  ARTEMIS_PRICE: '/api/artemis/asset/price',
 };
 
 // Refresh interval (60 seconds)
