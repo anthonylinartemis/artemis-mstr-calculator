@@ -1,4 +1,5 @@
 import useSWR from 'swr';
+import { PRICE_HISTORY_DAYS, REFRESH_INTERVAL } from '../lib/constants';
 
 interface PriceDataPoint {
   symbol: string;
@@ -17,34 +18,33 @@ interface PreferredPrice {
   change: number | null;
 }
 
-// Map Artemis symbols to display tickers
+// Map Artemis symbols to display tickers (use underscores per Artemis API)
 const SYMBOL_TO_TICKER: Record<string, string> = {
-  'eq-strf': 'STRF',
-  'eq-strc': 'STRC',
-  'eq-strk': 'STRK',
-  'eq-strd': 'STRD',
-  'eq-sata': 'SATA',
+  'eq_strf': 'STRF',
+  'eq_strc': 'STRC',
+  'eq_strk': 'STRK',
+  'eq_strd': 'STRD',
+  'eq_sata': 'SATA',
 };
 
-const TICKERS = ['eq-strf', 'eq-strc', 'eq-strk', 'eq-strd', 'eq-sata'];
+const TICKERS = ['eq_strf', 'eq_strc', 'eq_strk', 'eq_strd', 'eq_sata'];
 
 async function fetchPreferredPrices(): Promise<Record<string, PreferredPrice>> {
-  // Get dates for last 2 days to calculate change
+  // Get dates for price history to calculate daily change
   const today = new Date();
-  const twoDaysAgo = new Date(today);
-  twoDaysAgo.setDate(twoDaysAgo.getDate() - 3); // Go back 3 days to ensure we get 2 data points
+  const startDateObj = new Date(today);
+  startDateObj.setDate(startDateObj.getDate() - PRICE_HISTORY_DAYS);
 
   const endDate = today.toISOString().split('T')[0];
-  const startDate = twoDaysAgo.toISOString().split('T')[0];
+  const startDate = startDateObj.toISOString().split('T')[0];
 
+  // Use snake_case for Artemis API parameters
   const symbols = TICKERS.join(',');
-  const url = `/api/datasvc/v2/data/PRICE?symbols=${symbols}&startDate=${startDate}&endDate=${endDate}`;
+  const url = `/api/datasvc/v2/data/PRICE?symbols=${symbols}&start_date=${startDate}&end_date=${endDate}`;
 
   const response = await fetch(url);
 
   if (!response.ok) {
-    const errorText = await response.text();
-    console.error('Artemis datasvc error:', response.status, errorText);
     throw new Error(`Failed to fetch preferred prices: ${response.status}`);
   }
 
@@ -99,7 +99,7 @@ export function usePreferredPrices() {
     'preferred-prices',
     fetchPreferredPrices,
     {
-      refreshInterval: 60000, // Refresh every 60 seconds
+      refreshInterval: REFRESH_INTERVAL,
       revalidateOnFocus: true,
       dedupingInterval: 10000,
     }

@@ -72,9 +72,10 @@ export const PREFERRED_INSTRUMENTS: PreferredInstrument[] = [
 ];
 
 // Default assumptions (fallback if API fails)
+// Holdings updated per Strategy.com/btc as of Feb 2026
 export const DEFAULT_ASSUMPTIONS = {
-  btcPrice: 75000,
-  btcHoldings: 713502,
+  btcPrice: 97000,
+  btcHoldings: 471107,
   btcVolatility: 0.60, // 60% annualized
   btcArr: 0.25, // 25% expected annual return
 };
@@ -89,9 +90,12 @@ export const API_ENDPOINTS = {
 // Refresh interval (60 seconds)
 export const REFRESH_INTERVAL = 60 * 1000;
 
+// Number of days to look back for price change calculation
+export const PRICE_HISTORY_DAYS = 3;
+
 // Sensitivity matrix ranges
 export const SENSITIVITY_HOLDINGS_RANGE = [
-  500000, 600000, 713502, 800000, 900000, 1000000,
+  400000, 471107, 500000, 600000, 700000, 800000,
 ];
 
 export const SENSITIVITY_PRICE_RANGE = [

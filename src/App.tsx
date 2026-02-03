@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useMSTRData } from './hooks/useMSTRData';
 import { usePreferredPrices } from './hooks/usePreferredPrices';
+import { COVERAGE_THRESHOLDS } from './lib/constants';
 
 // Types
 interface DebtItem {
@@ -13,6 +14,10 @@ interface PrefItem {
   notional: number;
   price?: number;
   change?: number;
+}
+
+interface LivePrices {
+  [ticker: string]: { price: number; change: number | null } | undefined;
 }
 
 // MSTR Initial data
@@ -41,6 +46,33 @@ function formatCurrency(value: number): string {
   return `$${value.toLocaleString()}`;
 }
 
+/**
+ * Merge live prices into preferred stock items
+ */
+function mergePricesIntoPref(prefItems: PrefItem[], livePrices: LivePrices): PrefItem[] {
+  return prefItems.map((item) => {
+    const livePrice = livePrices[item.ticker];
+    if (livePrice) {
+      return {
+        ...item,
+        price: livePrice.price,
+        change: livePrice.change ?? undefined,
+      };
+    }
+    return item;
+  });
+}
+
+/**
+ * Get color class based on coverage ratio thresholds
+ * Uses COVERAGE_THRESHOLDS from constants for consistency
+ */
+function getCoverageColor(coverage: number): string {
+  if (coverage >= COVERAGE_THRESHOLDS.GOOD) return 'text-green-400';
+  if (coverage >= COVERAGE_THRESHOLDS.ADEQUATE) return 'text-yellow-400';
+  return 'text-red-400';
+}
+
 type TabType = 'mstr' | 'strive';
 
 function App() {
@@ -50,64 +82,53 @@ function App() {
   // Tab state
   const [activeTab, setActiveTab] = useState<TabType>('mstr');
 
-  // MSTR Actuals (from API)
-  const [actualBtcPrice, setActualBtcPrice] = useState(77592);
-  const [actualBtcHoldings, setActualBtcHoldings] = useState(550);
+  // MSTR Actuals (from API) - default to known holdings per Strategy.com
+  const [actualBtcPrice, setActualBtcPrice] = useState(97000);
+  const [actualBtcHoldings, setActualBtcHoldings] = useState(471); // 471k BTC per Strategy.com/btc
 
   // MSTR Assumptions (editable, defaults to actuals)
-  const [btcPrice, setBtcPrice] = useState(77592);
-  const [btcHoldings, setBtcHoldings] = useState(550);
+  const [btcPrice, setBtcPrice] = useState(97000);
+  const [btcHoldings, setBtcHoldings] = useState(471);
   const [usdReserve, setUsdReserve] = useState(2250);
 
   // MSTR Editable tables
   const [debt, setDebt] = useState<DebtItem[]>(INITIAL_DEBT);
   const [pref, setPref] = useState<PrefItem[]>(INITIAL_PREF);
 
-  // Strive data - BTC holdings per treasury.strive.com (in thousands)
-  const [striveBtcHoldings, setStriveBtcHoldings] = useState(0.028); // ~28 BTC
-  const [striveUsdReserve, setStriveUsdReserve] = useState(0);
+  // Strive data - BTC holdings per treasury.strive.com (actual BTC count)
+  const [striveBtcHoldings, setStriveBtcHoldings] = useState(13128); // ~13,128 BTC
+  const [striveUsdReserve, setStriveUsdReserve] = useState(24); // $24M USD reserve
   const [strivePref, setStrivePref] = useState<PrefItem[]>(STRIVE_INITIAL_PREF);
 
-  // Update from live data
+  // Update from live data with sanity check
   useEffect(() => {
     if (data) {
       const price = Math.round(data.btcPrice);
       const holdings = Math.round(data.btcHoldings / 1000);
+
+      // Always use live BTC price
       setActualBtcPrice(price);
-      setActualBtcHoldings(holdings);
       setBtcPrice(price);
-      setBtcHoldings(holdings);
+
+      // Only use API holdings if it's reasonable (Strategy has 471k+ BTC as of Feb 2026)
+      // API sometimes returns stale data
+      if (holdings >= 450) {
+        setActualBtcHoldings(holdings);
+        setBtcHoldings(holdings);
+      }
     }
   }, [data]);
 
   // Merge live prices into pref items
-  const prefWithPrices = useMemo(() => {
-    return pref.map((p) => {
-      const livePrice = livePrices[p.ticker];
-      if (livePrice) {
-        return {
-          ...p,
-          price: livePrice.price,
-          change: livePrice.change,
-        };
-      }
-      return p;
-    });
-  }, [pref, livePrices]);
+  const prefWithPrices = useMemo(
+    () => mergePricesIntoPref(pref, livePrices),
+    [pref, livePrices]
+  );
 
-  const strivePrefWithPrices = useMemo(() => {
-    return strivePref.map((p) => {
-      const livePrice = livePrices[p.ticker];
-      if (livePrice) {
-        return {
-          ...p,
-          price: livePrice.price,
-          change: livePrice.change,
-        };
-      }
-      return p;
-    });
-  }, [strivePref, livePrices]);
+  const strivePrefWithPrices = useMemo(
+    () => mergePricesIntoPref(strivePref, livePrices),
+    [strivePref, livePrices]
+  );
 
   // MSTR Calculations
   const btcValueM = useMemo(() => (btcPrice * btcHoldings * 1000) / 1_000_000, [btcPrice, btcHoldings]);
@@ -135,9 +156,9 @@ function App() {
 
   const totalCoverage = (btcValueM + usdReserve) / totalDebtPref;
 
-  // Strive Calculations
+  // Strive Calculations (striveBtcHoldings is actual BTC count, not thousands)
   const striveBtcValueM = useMemo(
-    () => (btcPrice * striveBtcHoldings * 1000) / 1_000_000,
+    () => (btcPrice * striveBtcHoldings) / 1_000_000,
     [btcPrice, striveBtcHoldings]
   );
   const striveTotalPref = useMemo(() => strivePref.reduce((sum, p) => sum + p.notional, 0), [strivePref]);
@@ -170,12 +191,6 @@ function App() {
     const newPref = [...strivePref];
     newPref[index] = { ...newPref[index], notional: value };
     setStrivePref(newPref);
-  };
-
-  const getCoverageColor = (coverage: number): string => {
-    if (coverage >= 5) return 'text-green-400';
-    if (coverage >= 3) return 'text-yellow-400';
-    return 'text-red-400';
   };
 
   const resetToActuals = () => {
@@ -413,10 +428,13 @@ function App() {
                     type="number"
                     value={striveBtcHoldings}
                     onChange={(e) => setStriveBtcHoldings(Number(e.target.value))}
-                    className="bg-[#2d2d44] border border-gray-600 rounded px-2 py-1 w-20 text-white text-right text-sm"
+                    className="bg-[#2d2d44] border border-gray-600 rounded px-2 py-1 w-28 text-white text-right text-sm"
                   />
-                  <span className="text-gray-400 text-sm">k</span>
+                  <span className="text-gray-400 text-sm">BTC</span>
                 </div>
+              </div>
+              <div className="text-gray-500 text-xs mt-1">
+                ({striveBtcHoldings.toLocaleString()} BTC)
               </div>
             </div>
 

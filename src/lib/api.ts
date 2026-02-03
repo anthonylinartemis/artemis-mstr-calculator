@@ -125,27 +125,22 @@ export async function fetchCombinedData(): Promise<CombinedData> {
       btcNav: btcResults.btcNavNumber * 1_000_000_000, // API returns in billions
       source: 'microstrategy',
     };
-  } catch (mstrError) {
-    console.warn('MicroStrategy API failed, trying Artemis fallback:', mstrError);
+  } catch {
+    // MicroStrategy API failed, try Artemis fallback
+    const btcPrice = await fetchArtemisBtcPrice();
 
-    try {
-      const btcPrice = await fetchArtemisBtcPrice();
-
-      // Return partial data with Artemis BTC price and defaults
-      return {
-        btcPrice,
-        btcHoldings: DEFAULT_ASSUMPTIONS.btcHoldings,
-        mstrPrice: 0,
-        mstrMarketCap: 0,
-        totalDebt: 8244, // Sum of debt instruments from latest API
-        totalPreferred: 8389, // Sum of preferred instruments
-        historicVolatility: DEFAULT_ASSUMPTIONS.btcVolatility,
-        btcNav: btcPrice * DEFAULT_ASSUMPTIONS.btcHoldings,
-        source: 'artemis',
-      };
-    } catch (artemisError) {
-      console.error('Artemis API also failed:', artemisError);
-      throw new Error('All data sources failed');
-    }
+    // Return partial data with Artemis BTC price and defaults
+    // Debt/Pref totals from Strategy.com/credit as of Feb 2026
+    return {
+      btcPrice,
+      btcHoldings: DEFAULT_ASSUMPTIONS.btcHoldings,
+      mstrPrice: 0,
+      mstrMarketCap: 0,
+      totalDebt: 8214, // Sum of convertible debt instruments
+      totalPreferred: 7467, // Sum of preferred instruments (STRF + STRC + STRK + STRD)
+      historicVolatility: DEFAULT_ASSUMPTIONS.btcVolatility,
+      btcNav: btcPrice * DEFAULT_ASSUMPTIONS.btcHoldings,
+      source: 'artemis',
+    };
   }
 }
