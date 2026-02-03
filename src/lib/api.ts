@@ -34,6 +34,27 @@ interface RawBitcoinKpis {
   timestamp: string;
 }
 
+interface CoinGeckoResponse {
+  price: number;
+  change24h: number;
+  source: string;
+  timestamp: string;
+}
+
+/**
+ * Fetch BTC price from CoinGecko (primary source)
+ */
+async function fetchCoinGeckoBtcPrice(): Promise<number> {
+  const response = await fetch('/api/coingecko/btc-price');
+
+  if (!response.ok) {
+    throw new Error(`CoinGecko API error: ${response.status}`);
+  }
+
+  const data: CoinGeckoResponse = await response.json();
+  return data.price;
+}
+
 /**
  * Fetch MSTR KPI data from MicroStrategy API
  */
@@ -63,30 +84,6 @@ async function fetchBitcoinKpis(): Promise<RawBitcoinKpis> {
 }
 
 /**
- * Fetch BTC price from Artemis API (fallback)
- */
-async function fetchArtemisBtcPrice(): Promise<number> {
-  const apiKey = import.meta.env.VITE_ARTEMIS_API_KEY;
-
-  if (!apiKey) {
-    throw new Error('Artemis API key not configured');
-  }
-
-  const response = await fetch(`${API_ENDPOINTS.ARTEMIS_PRICE}?symbol=BTC`, {
-    headers: {
-      'X-API-Key': apiKey,
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error(`Artemis API error: ${response.status}`);
-  }
-
-  const data = await response.json();
-  return data.price;
-}
-
-/**
  * Combined data interface (normalized)
  */
 export interface CombinedData {
@@ -98,15 +95,29 @@ export interface CombinedData {
   totalPreferred: number;
   historicVolatility: number;
   btcNav: number;
-  source: 'microstrategy' | 'artemis' | 'mixed';
+  source: 'coingecko' | 'microstrategy' | 'mixed';
 }
 
 /**
- * Fetch and normalize data from MicroStrategy APIs
+ * Fetch and normalize data from multiple sources
+ * - BTC Price: CoinGecko (primary), MicroStrategy (fallback)
+ * - Holdings: MicroStrategy API, falls back to bitcointreasuries.net defaults
  */
 export async function fetchCombinedData(): Promise<CombinedData> {
+  // Fetch BTC price from CoinGecko (more reliable)
+  let btcPrice: number;
+  let priceSource: 'coingecko' | 'microstrategy' = 'coingecko';
+
   try {
-    // Try MicroStrategy APIs first
+    btcPrice = await fetchCoinGeckoBtcPrice();
+  } catch {
+    // CoinGecko failed, will try MicroStrategy below
+    btcPrice = 0;
+    priceSource = 'microstrategy';
+  }
+
+  // Try to get holdings from MicroStrategy API
+  try {
     const [mstrData, btcData] = await Promise.all([
       fetchMSTRKpiData(),
       fetchBitcoinKpis(),
@@ -114,33 +125,36 @@ export async function fetchCombinedData(): Promise<CombinedData> {
 
     const btcResults = btcData.results;
 
+    // Use CoinGecko price if available, otherwise MicroStrategy
+    const finalBtcPrice = btcPrice > 0 ? btcPrice : btcResults.latestPrice;
+    const holdings = parseApiNumber(btcResults.btcHoldings);
+
     return {
-      btcPrice: btcResults.latestPrice,
-      btcHoldings: parseApiNumber(btcResults.btcHoldings),
+      btcPrice: finalBtcPrice,
+      btcHoldings: holdings,
       mstrPrice: parseApiNumber(mstrData.price),
-      mstrMarketCap: parseApiNumber(mstrData.marketCap) * 1_000_000, // API returns in millions
-      totalDebt: parseApiNumber(mstrData.debt), // in millions
-      totalPreferred: parseApiNumber(mstrData.pref), // in millions
-      historicVolatility: mstrData.historicVolatility / 100, // Convert from percentage
-      btcNav: btcResults.btcNavNumber * 1_000_000_000, // API returns in billions
-      source: 'microstrategy',
+      mstrMarketCap: parseApiNumber(mstrData.marketCap) * 1_000_000,
+      totalDebt: parseApiNumber(mstrData.debt),
+      totalPreferred: parseApiNumber(mstrData.pref),
+      historicVolatility: mstrData.historicVolatility / 100,
+      btcNav: btcResults.btcNavNumber * 1_000_000_000,
+      source: priceSource === 'coingecko' ? 'mixed' : 'microstrategy',
     };
   } catch {
-    // MicroStrategy API failed, try Artemis fallback
-    const btcPrice = await fetchArtemisBtcPrice();
+    // MicroStrategy API failed, use defaults from bitcointreasuries.net
+    // If CoinGecko also failed, use default price
+    const finalBtcPrice = btcPrice > 0 ? btcPrice : DEFAULT_ASSUMPTIONS.btcPrice;
 
-    // Return partial data with Artemis BTC price and defaults
-    // Debt/Pref totals from Strategy.com/credit as of Feb 2026
     return {
-      btcPrice,
+      btcPrice: finalBtcPrice,
       btcHoldings: DEFAULT_ASSUMPTIONS.btcHoldings,
       mstrPrice: 0,
       mstrMarketCap: 0,
-      totalDebt: 8214, // Sum of convertible debt instruments
-      totalPreferred: 7467, // Sum of preferred instruments (STRF + STRC + STRK + STRD)
+      totalDebt: 8214,
+      totalPreferred: 7467,
       historicVolatility: DEFAULT_ASSUMPTIONS.btcVolatility,
-      btcNav: btcPrice * DEFAULT_ASSUMPTIONS.btcHoldings,
-      source: 'artemis',
+      btcNav: finalBtcPrice * DEFAULT_ASSUMPTIONS.btcHoldings,
+      source: 'coingecko',
     };
   }
 }

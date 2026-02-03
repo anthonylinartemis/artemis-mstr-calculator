@@ -82,13 +82,13 @@ function App() {
   // Tab state
   const [activeTab, setActiveTab] = useState<TabType>('mstr');
 
-  // MSTR Actuals (from API) - default to known holdings per Strategy.com
+  // MSTR Actuals (from API) - default to known holdings per bitcointreasuries.net
   const [actualBtcPrice, setActualBtcPrice] = useState(97000);
-  const [actualBtcHoldings, setActualBtcHoldings] = useState(471); // 471k BTC per Strategy.com/btc
+  const [actualBtcHoldings, setActualBtcHoldings] = useState(714); // 714k BTC per bitcointreasuries.net
 
   // MSTR Assumptions (editable, defaults to actuals)
   const [btcPrice, setBtcPrice] = useState(97000);
-  const [btcHoldings, setBtcHoldings] = useState(471);
+  const [btcHoldings, setBtcHoldings] = useState(714);
   const [usdReserve, setUsdReserve] = useState(2250);
 
   // MSTR Editable tables
