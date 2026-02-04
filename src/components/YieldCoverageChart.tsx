@@ -57,7 +57,6 @@ function CustomTooltip({ active, payload }: TooltipProps) {
 }
 
 export function YieldCoverageChart({ preferredData }: YieldCoverageChartProps) {
-  // Transform data for the scatter chart
   const chartData: ChartDataPoint[] = preferredData.map((item) => ({
     ticker: item.ticker,
     yield: PREFERRED_YIELDS[item.ticker] ?? 0,
@@ -65,7 +64,6 @@ export function YieldCoverageChart({ preferredData }: YieldCoverageChartProps) {
     notional: item.notional,
   }));
 
-  // Calculate axis domains
   const maxCoverage = Math.max(...chartData.map((d) => d.coverage), COVERAGE_THRESHOLDS.GOOD);
   const maxYield = Math.max(...chartData.map((d) => d.yield));
 

@@ -7,7 +7,18 @@ import { YieldCoverageChart } from './components/YieldCoverageChart';
 import artemisLogo from '../logo/Purple gradient icon.jpg';
 import bitcoinLogo from '../logo/Bitcoin.png';
 
-// Types
+// Tooltip component for column header definitions
+function HeaderTooltip({ children, tooltip }: { children: React.ReactNode; tooltip: string }) {
+  return (
+    <span className="relative group cursor-help">
+      {children}
+      <span className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 px-3 py-2 bg-lavender-bg border border-lavender-accent rounded-lg text-xs text-gray-300 whitespace-normal w-64 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 shadow-lg">
+        {tooltip}
+      </span>
+    </span>
+  );
+}
+
 interface DebtItem {
   name: string;
   notional: number;
@@ -24,7 +35,6 @@ interface LivePrices {
   [ticker: string]: { price: number; change: number | null } | undefined;
 }
 
-// MSTR Initial data
 const INITIAL_DEBT: DebtItem[] = [
   { name: 'Convert 2028', notional: 1010 },
   { name: 'Convert 2030 B', notional: 2000 },
@@ -41,7 +51,6 @@ const INITIAL_PREF: PrefItem[] = [
   { ticker: 'STRD', notional: 1402 },
 ];
 
-// Strive Initial data (ASST)
 const STRIVE_INITIAL_PREF: PrefItem[] = [
   { ticker: 'SATA', notional: 500 },
 ];
@@ -179,7 +188,6 @@ function App() {
 
   const striveTotalCoverage = striveTotalPref > 0 ? (striveBtcValueM + striveUsdReserve) / striveTotalPref : 0;
 
-  // Handlers
   const updateDebt = (index: number, value: number) => {
     const newDebt = [...debt];
     newDebt[index] = { ...newDebt[index], notional: value };
@@ -430,9 +438,13 @@ function App() {
               <thead>
                 <tr className="text-gray-400 border-b border-lavender-border">
                   <th className="text-left py-4 px-4 font-medium" style={{ width: '30%' }}>Preferred Stock</th>
-                  <th className="text-center py-4 px-4 font-medium cursor-help" style={{ width: '20%' }} title={STRATEGY_DEFINITIONS.notional}>Notional ($M)</th>
+                  <th className="text-center py-4 px-4 font-medium" style={{ width: '20%' }}>
+                    <HeaderTooltip tooltip={STRATEGY_DEFINITIONS.notional}>Notional ($M)</HeaderTooltip>
+                  </th>
                   <th className="text-center py-4 px-4 font-medium" style={{ width: '25%' }}>Cum Notional ($M)</th>
-                  <th className="text-right py-4 px-4 font-medium cursor-help" style={{ width: '25%' }} title={STRATEGY_DEFINITIONS.coverage}>Coverage</th>
+                  <th className="text-right py-4 px-4 font-medium" style={{ width: '25%' }}>
+                    <HeaderTooltip tooltip={STRATEGY_DEFINITIONS.coverage}>Coverage</HeaderTooltip>
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -587,9 +599,13 @@ function App() {
               <thead>
                 <tr className="text-gray-400 border-b border-lavender-border">
                   <th className="text-left py-4 px-4 font-medium" style={{ width: '30%' }}>Preferred Stock</th>
-                  <th className="text-center py-4 px-4 font-medium cursor-help" style={{ width: '20%' }} title={STRATEGY_DEFINITIONS.notional}>Notional ($M)</th>
+                  <th className="text-center py-4 px-4 font-medium" style={{ width: '20%' }}>
+                    <HeaderTooltip tooltip={STRATEGY_DEFINITIONS.notional}>Notional ($M)</HeaderTooltip>
+                  </th>
                   <th className="text-center py-4 px-4 font-medium" style={{ width: '25%' }}>Cum Notional ($M)</th>
-                  <th className="text-right py-4 px-4 font-medium cursor-help" style={{ width: '25%' }} title={STRATEGY_DEFINITIONS.coverage}>Coverage</th>
+                  <th className="text-right py-4 px-4 font-medium" style={{ width: '25%' }}>
+                    <HeaderTooltip tooltip={STRATEGY_DEFINITIONS.coverage}>Coverage</HeaderTooltip>
+                  </th>
                 </tr>
               </thead>
               <tbody>
