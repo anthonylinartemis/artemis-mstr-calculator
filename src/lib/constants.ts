@@ -113,3 +113,19 @@ export const COVERAGE_THRESHOLDS = {
 
 // Duration for perpetual preferred (used in calculations)
 export const PERPETUAL_DURATION = 30;
+
+// Preferred stock dividend yields (fixed contractual rates)
+// Source: Strategy.com prospectuses
+export const PREFERRED_YIELDS: Record<string, number> = {
+  STRF: 0.10,   // 10%
+  STRK: 0.08,   // 8%
+  STRC: 0.1125, // 11.25%
+  STRD: 0.10,   // 10%
+  SATA: 0.12,   // 12%
+};
+
+// Strategy official definitions for tooltips
+export const STRATEGY_DEFINITIONS = {
+  coverage: "Coverage Ratio: (BTC Value + USD Reserve) / Cumulative Notional. Measures how many times the treasury assets cover the obligations.",
+  notional: "Notional Amount: The face value of the security's outstanding principal. For preferred stock, this is the aggregate liquidation preference.",
+};
