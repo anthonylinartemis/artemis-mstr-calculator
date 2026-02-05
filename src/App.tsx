@@ -520,8 +520,8 @@ function App() {
             </table>
           </div>
 
-          {/* Yield vs Coverage Chart */}
-          <YieldCoverageChart preferredData={prefWithCumulative} />
+          {/* Yield vs Coverage Chart - includes all BTC treasury preferreds */}
+          <YieldCoverageChart preferredData={[...prefWithCumulative, ...strivePrefWithCumulative]} />
         </>
       ) : activeTab === 'strive' ? (
         <>
@@ -649,9 +649,6 @@ function App() {
               </tbody>
             </table>
           </div>
-
-          {/* Yield vs Coverage Chart */}
-          <YieldCoverageChart preferredData={strivePrefWithCumulative} />
         </>
       ) : activeTab === 'mstr-sensitivity' ? (
         <>
