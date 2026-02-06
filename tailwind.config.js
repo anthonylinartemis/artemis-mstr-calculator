@@ -18,6 +18,11 @@ export default {
         'strategy-yellow': '#eab308',
         'strategy-text': '#ffffff',
         'strategy-text-muted': '#9ca3af',
+        // Lavender dark theme
+        'lavender-bg': '#2d2a4a',
+        'lavender-card': '#3d3a5a',
+        'lavender-border': '#4d4a6a',
+        'lavender-accent': '#9d8df1',
       },
       fontFamily: {
         mono: ['JetBrains Mono', 'Fira Code', 'monospace'],

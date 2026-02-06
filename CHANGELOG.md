@@ -1,5 +1,77 @@
 # Changelog
 
+## [0.7.0] - 2026-02-04
+
+### Added
+- **Social Preview (og:image)** - Nice preview card when sharing on X/LinkedIn
+  - Uses Artemis logo at `/public/og-image.jpg`
+  - Twitter card with large image
+
+- **Source Citations Footer**
+  - Bitcoin logo with links to Strategy.com and Strive Treasury
+  - Small, unobtrusive footer at bottom of page
+
+### Changed
+- Updated page title to "BTC Treasury Calculator"
+- Enhanced meta description for SEO
+
+---
+
+## [0.6.0] - 2026-02-04
+
+### Added
+- **Editable Total Debt/Pref boxes** - Modify $8,214M total directly instead of editing each row
+  - `additionalDebt` and `additionalPref` state for adjustments
+  - Total rows now have input fields with lavender accent border
+
+### Changed
+- **Bigger fonts on calculator tabs**
+  - Table fonts increased to `text-base` (16px)
+  - Table cell padding increased to `py-4 px-4`
+  - Input fields widened to `w-32`
+  - Row text uses `font-semibold`
+
+---
+
+## [0.5.0] - 2026-02-04
+
+### Added
+- **4-Tab Structure**: Reorganized from 2 tabs to 4 tabs
+  - MSTR Calculator (main calculator)
+  - Strive Calculator (Strive/ASST calculator)
+  - MSTR Sensitivity (sensitivity matrix for MSTR securities)
+  - Strive Sensitivity (sensitivity matrix for Strive securities)
+
+- **SensitivityTable Component** (`src/components/SensitivityTable.tsx`)
+  - Security dropdown to select any debt or preferred instrument
+  - Holdings increment control (configurable, default 100k for MSTR, 5000 for Strive)
+  - Dynamic holdings range: current ±3 increments
+  - Price steps: $30k, $50k, $75k, $100k, $150k, $200k
+  - Color-coded heatmap cells (green ≥10x, yellow 3-5x, orange 2-3x, red <2x)
+  - Current cell highlight with ring indicator
+  - Cumulative notional display for selected security
+
+- **Artemis Logo** in header (top-left, 40px) using `logo/Purple gradient icon.jpg`
+
+### Changed
+- **Dark Lavender Theme** (replaced dark blue)
+  - `lavender-bg: #2d2a4a` (main background)
+  - `lavender-card: #3d3a5a` (card/input backgrounds)
+  - `lavender-border: #4d4a6a` (borders)
+  - `lavender-accent: #9d8df1` (accent/highlight color)
+
+- **Typography** - Base font size increased from 14px to 16px
+- **Layout** - Max-width container (1200px) with centering, better spacing
+- **Tab Styling** - Lavender accent replaces yellow
+
+### Files Modified
+- `src/App.tsx` - 4-tab structure, logo, theme
+- `src/components/SensitivityTable.tsx` - New component
+- `tailwind.config.js` - Lavender color palette
+- `src/index.css` - Base font size, typography scaling
+
+---
+
 ## [0.4.0] - 2026-02-03
 
 ### Added

@@ -4,6 +4,7 @@ import { usePreferredPrices } from './hooks/usePreferredPrices';
 import { COVERAGE_THRESHOLDS, STRATEGY_DEFINITIONS } from './lib/constants';
 import { SensitivityTable } from './components/SensitivityTable';
 import { YieldCoverageChart } from './components/YieldCoverageChart';
+import { NumericInput, TableNumericInput } from './components/NumericInput';
 import artemisLogo from '../logo/Purple gradient icon.jpg';
 import bitcoinLogo from '../logo/Bitcoin.png';
 
@@ -47,6 +48,7 @@ const INITIAL_DEBT: DebtItem[] = [
 const INITIAL_PREF: PrefItem[] = [
   { ticker: 'STRF', notional: 1284 },
   { ticker: 'STRC', notional: 3379 },
+  { ticker: 'STRE', notional: 921 },
   { ticker: 'STRK', notional: 1402 },
   { ticker: 'STRD', notional: 1402 },
 ];
@@ -56,7 +58,7 @@ const STRIVE_INITIAL_PREF: PrefItem[] = [
 ];
 
 function formatCurrency(value: number): string {
-  return `$${value.toLocaleString()}`;
+  return `$${Math.round(value).toLocaleString()}`;
 }
 
 /**
@@ -154,13 +156,16 @@ function App() {
     let cumulative = 0;
     return debt.map((d) => {
       cumulative += d.notional;
-      const coverage = (btcValueM + usdReserve) / cumulative;
-      return { ...d, cumulative, coverage };
+      // Pro-rate USD Reserve benefit across debt (official Strategy methodology)
+      const effectiveCumulative = cumulative * (totalDebt - usdReserve) / totalDebt;
+      const coverage = (btcValueM + usdReserve) / effectiveCumulative;
+      return { ...d, cumulative: effectiveCumulative, coverage };
     });
-  }, [debt, btcValueM, usdReserve]);
+  }, [debt, btcValueM, usdReserve, totalDebt]);
 
   const prefWithCumulative = useMemo(() => {
-    let cumulative = totalDebt;
+    // Net USD Reserve from debt first (USD Reserve acts as cushion reducing effective debt)
+    let cumulative = totalDebt - usdReserve;
     return prefWithPrices.map((p) => {
       cumulative += p.notional;
       const coverage = (btcValueM + usdReserve) / cumulative;
@@ -336,25 +341,23 @@ function App() {
                 </button>
               </div>
               <div className="flex gap-4 items-center">
-                <div className="flex items-center gap-1">
-                  <span className="text-gray-400 text-sm">BTC Price $</span>
-                  <input
-                    type="number"
-                    value={btcPrice}
-                    onChange={(e) => setBtcPrice(Number(e.target.value))}
-                    className="bg-lavender-bg border border-lavender-border rounded px-3 py-1.5 w-28 text-white text-right text-sm"
-                  />
-                </div>
-                <div className="flex items-center gap-1">
-                  <span className="text-gray-400 text-sm">Holdings</span>
-                  <input
-                    type="number"
-                    value={btcHoldings}
-                    onChange={(e) => setBtcHoldings(Number(e.target.value))}
-                    className="bg-lavender-bg border border-lavender-border rounded px-3 py-1.5 w-24 text-white text-right text-sm"
-                  />
-                  <span className="text-gray-400 text-sm">k</span>
-                </div>
+                <NumericInput
+                  value={btcPrice}
+                  onChange={setBtcPrice}
+                  prefix="BTC Price $"
+                  className="w-28 text-sm"
+                  min={0}
+                  step={1000}
+                />
+                <NumericInput
+                  value={btcHoldings}
+                  onChange={setBtcHoldings}
+                  prefix="Holdings"
+                  suffix="k"
+                  className="w-24 text-sm"
+                  min={0}
+                  step={10}
+                />
               </div>
             </div>
 
@@ -370,14 +373,15 @@ function App() {
           {/* USD Reserve */}
           <div className="flex items-center gap-2 mb-6 bg-lavender-card rounded-lg p-4 border border-lavender-border w-fit">
             <span className="text-lavender-accent font-medium">USD Reserve</span>
-            <span className="text-gray-400">$</span>
-            <input
-              type="number"
+            <NumericInput
               value={usdReserve}
-              onChange={(e) => setUsdReserve(Number(e.target.value))}
-              className="bg-lavender-bg border border-lavender-border rounded px-3 py-1.5 w-28 text-white text-right"
+              onChange={setUsdReserve}
+              prefix="$"
+              suffix="M"
+              className="w-28"
+              min={0}
+              step={100}
             />
-            <span className="text-gray-400">M</span>
           </div>
 
           {/* Debt Table */}
@@ -393,14 +397,14 @@ function App() {
               </thead>
               <tbody>
                 {debtWithCumulative.map((item, i) => (
-                  <tr key={item.name} className="border-t border-lavender-border">
+                  <tr key={item.name} className="border-t border-lavender-border hover:bg-lavender-bg/30 transition-colors">
                     <td className="py-4 px-4 text-gray-300 text-base">{item.name}</td>
                     <td className="py-4 px-4 text-center">
-                      <input
-                        type="number"
+                      <TableNumericInput
                         value={item.notional}
-                        onChange={(e) => updateDebt(i, Number(e.target.value))}
-                        className="bg-lavender-bg border border-lavender-border rounded px-3 py-2 w-32 text-white text-center text-base"
+                        onChange={(val) => updateDebt(i, val)}
+                        className="w-32 text-base"
+                        min={0}
                       />
                     </td>
                     <td className="py-4 px-4 text-center text-gray-300 text-base">{formatCurrency(item.cumulative)}</td>
@@ -412,16 +416,14 @@ function App() {
                 <tr className="border-t-2 border-lavender-border bg-lavender-bg/50">
                   <td className="py-3 px-4 text-lavender-accent font-semibold text-base">Total Debt</td>
                   <td className="py-3 px-4 text-center">
-                    <div className="flex items-center justify-center gap-1">
-                      <span className="text-gray-400">$</span>
-                      <input
-                        type="number"
-                        value={totalDebt}
-                        onChange={(e) => setAdditionalDebt(Number(e.target.value) - baseDebt)}
-                        className="bg-lavender-bg border border-lavender-accent rounded px-3 py-1.5 w-32 text-lavender-accent text-center font-semibold"
-                      />
-                      <span className="text-gray-400">M</span>
-                    </div>
+                    <NumericInput
+                      value={totalDebt}
+                      onChange={(val) => setAdditionalDebt(val - baseDebt)}
+                      prefix="$"
+                      suffix="M"
+                      className="w-28 text-lavender-accent font-semibold border-lavender-accent"
+                      min={0}
+                    />
                   </td>
                   <td className="py-3 px-4 text-center text-lavender-accent font-semibold text-base">{formatCurrency(totalDebt)}</td>
                   <td className={`py-3 px-4 text-right font-semibold text-base ${getCoverageColor((btcValueM + usdReserve) / totalDebt)}`}>
@@ -449,26 +451,23 @@ function App() {
               </thead>
               <tbody>
                 {prefWithCumulative.map((item, i) => (
-                  <tr key={item.ticker} className="border-t border-lavender-border">
+                  <tr key={item.ticker} className="border-t border-lavender-border hover:bg-lavender-bg/30 transition-colors">
                     <td className="py-4 px-4">
                       <div className="flex items-center gap-3">
                         <span className="text-gray-300 font-semibold text-base">{item.ticker}</span>
                         {item.price && (
                           <span className="text-gray-400 text-sm">
                             ${item.price.toFixed(2)}
-                            <span className={item.change && item.change < 0 ? 'text-red-400 ml-1' : 'text-green-400 ml-1'}>
-                              ({item.change && item.change > 0 ? '+' : ''}{item.change?.toFixed(1)}%)
-                            </span>
                           </span>
                         )}
                       </div>
                     </td>
                     <td className="py-4 px-4 text-center">
-                      <input
-                        type="number"
+                      <TableNumericInput
                         value={item.notional}
-                        onChange={(e) => updatePref(i, Number(e.target.value))}
-                        className="bg-lavender-bg border border-lavender-border rounded px-3 py-2 w-32 text-white text-center text-base"
+                        onChange={(val) => updatePref(i, val)}
+                        className="w-32 text-base"
+                        min={0}
                       />
                     </td>
                     <td className="py-4 px-4 text-center text-gray-300 text-base">{formatCurrency(item.cumulative)}</td>
@@ -480,16 +479,14 @@ function App() {
                 <tr className="border-t-2 border-lavender-border bg-lavender-bg/50">
                   <td className="py-3 px-4 text-lavender-accent font-semibold text-base">Total Pref</td>
                   <td className="py-3 px-4 text-center">
-                    <div className="flex items-center justify-center gap-1">
-                      <span className="text-gray-400">$</span>
-                      <input
-                        type="number"
-                        value={totalPref}
-                        onChange={(e) => setAdditionalPref(Number(e.target.value) - basePref)}
-                        className="bg-lavender-bg border border-lavender-accent rounded px-3 py-1.5 w-32 text-lavender-accent text-center font-semibold"
-                      />
-                      <span className="text-gray-400">M</span>
-                    </div>
+                    <NumericInput
+                      value={totalPref}
+                      onChange={(val) => setAdditionalPref(val - basePref)}
+                      prefix="$"
+                      suffix="M"
+                      className="w-28 text-lavender-accent font-semibold border-lavender-accent"
+                      min={0}
+                    />
                   </td>
                   <td className="py-3 px-4 text-center text-lavender-accent font-semibold text-base">{formatCurrency(totalDebtPref)}</td>
                   <td className={`py-3 px-4 text-right font-semibold text-base ${getCoverageColor(totalCoverage)}`}>
@@ -521,7 +518,7 @@ function App() {
           </div>
 
           {/* Yield vs Coverage Chart - includes all BTC treasury preferreds */}
-          <YieldCoverageChart preferredData={[...prefWithCumulative, ...strivePrefWithCumulative]} />
+          <YieldCoverageChart preferredData={[...prefWithCumulative.filter(p => p.ticker !== 'STRE'), ...strivePrefWithCumulative]} />
         </>
       ) : activeTab === 'strive' ? (
         <>
@@ -539,9 +536,6 @@ function App() {
                   <div>
                     <span className="text-gray-400 text-sm">SATA: </span>
                     <span className="text-green-400 font-medium">${livePrices['SATA'].price.toFixed(2)}</span>
-                    <span className={livePrices['SATA'].change && livePrices['SATA'].change < 0 ? 'text-red-400 ml-1 text-sm' : 'text-green-400 ml-1 text-sm'}>
-                      ({livePrices['SATA'].change && livePrices['SATA'].change > 0 ? '+' : ''}{livePrices['SATA'].change?.toFixed(1)}%)
-                    </span>
                   </div>
                 )}
               </div>
@@ -552,16 +546,15 @@ function App() {
             <div className="bg-lavender-card rounded-lg p-4 border border-lavender-border">
               <div className="text-xs text-gray-400 mb-2 uppercase tracking-wider">Assumptions</div>
               <div className="flex gap-4 items-center">
-                <div className="flex items-center gap-1">
-                  <span className="text-gray-400 text-sm">Holdings</span>
-                  <input
-                    type="number"
-                    value={striveBtcHoldings}
-                    onChange={(e) => setStriveBtcHoldings(Number(e.target.value))}
-                    className="bg-lavender-bg border border-lavender-border rounded px-3 py-1.5 w-32 text-white text-right text-sm"
-                  />
-                  <span className="text-gray-400 text-sm">BTC</span>
-                </div>
+                <NumericInput
+                  value={striveBtcHoldings}
+                  onChange={setStriveBtcHoldings}
+                  prefix="Holdings"
+                  suffix="BTC"
+                  className="w-32 text-sm"
+                  min={0}
+                  step={100}
+                />
               </div>
               <div className="text-gray-500 text-xs mt-1">
                 ({striveBtcHoldings.toLocaleString()} BTC)
@@ -580,14 +573,15 @@ function App() {
           {/* Strive USD Reserve */}
           <div className="flex items-center gap-2 mb-6 bg-lavender-card rounded-lg p-4 border border-lavender-border w-fit">
             <span className="text-lavender-accent font-medium">USD Reserve</span>
-            <span className="text-gray-400">$</span>
-            <input
-              type="number"
+            <NumericInput
               value={striveUsdReserve}
-              onChange={(e) => setStriveUsdReserve(Number(e.target.value))}
-              className="bg-lavender-bg border border-lavender-border rounded px-3 py-1.5 w-28 text-white text-right"
+              onChange={setStriveUsdReserve}
+              prefix="$"
+              suffix="M"
+              className="w-28"
+              min={0}
+              step={10}
             />
-            <span className="text-gray-400">M</span>
           </div>
 
           {/* Strive has no debt - just preferred */}
@@ -610,26 +604,23 @@ function App() {
               </thead>
               <tbody>
                 {strivePrefWithCumulative.map((item, i) => (
-                  <tr key={item.ticker} className="border-t border-lavender-border">
+                  <tr key={item.ticker} className="border-t border-lavender-border hover:bg-lavender-bg/30 transition-colors">
                     <td className="py-4 px-4">
                       <div className="flex items-center gap-3">
                         <span className="text-gray-300 font-semibold text-base">{item.ticker}</span>
                         {item.price && (
                           <span className="text-gray-400 text-sm">
                             ${item.price.toFixed(2)}
-                            <span className={item.change && item.change < 0 ? 'text-red-400 ml-1' : 'text-green-400 ml-1'}>
-                              ({item.change && item.change > 0 ? '+' : ''}{item.change?.toFixed(1)}%)
-                            </span>
                           </span>
                         )}
                       </div>
                     </td>
                     <td className="py-4 px-4 text-center">
-                      <input
-                        type="number"
+                      <TableNumericInput
                         value={item.notional}
-                        onChange={(e) => updateStrivePref(i, Number(e.target.value))}
-                        className="bg-lavender-bg border border-lavender-border rounded px-3 py-2 w-32 text-white text-center text-base"
+                        onChange={(val) => updateStrivePref(i, val)}
+                        className="w-32 text-base"
+                        min={0}
                       />
                     </td>
                     <td className="py-4 px-4 text-center text-gray-300 text-base">{formatCurrency(item.cumulative)}</td>
