@@ -11,11 +11,6 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/microstrategy/, ''),
       },
-      '/api/artemis': {
-        target: 'https://api.artemis.xyz',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/artemis/, ''),
-      },
     },
   },
 })

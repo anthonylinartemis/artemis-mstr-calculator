@@ -83,9 +83,11 @@ export function NumericInput({
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const raw = e.target.value;
+    let raw = e.target.value;
     // Allow empty, negative sign, decimal point, and numbers
     if (raw === '' || /^-?\d*\.?\d*$/.test(raw)) {
+      // Strip leading zeroes: "007" → "7", "00" → "0", but keep "0.5"
+      raw = raw.replace(/^(-?)0+(\d)/, '$1$2');
       setDisplayValue(raw);
     }
   };
@@ -200,8 +202,10 @@ export function TableNumericInput({
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const raw = e.target.value;
+    let raw = e.target.value;
     if (raw === '' || /^-?\d*\.?\d*$/.test(raw)) {
+      // Strip leading zeroes: "007" → "7", "00" → "0", but keep "0.5"
+      raw = raw.replace(/^(-?)0+(\d)/, '$1$2');
       setDisplayValue(raw);
     }
   };

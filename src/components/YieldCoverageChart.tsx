@@ -88,22 +88,28 @@ function CustomTooltip({ active, payload }: TooltipProps) {
 }
 
 export function YieldCoverageChart({ preferredData }: YieldCoverageChartProps) {
-  const chartData: ChartDataPoint[] = preferredData.map((item) => {
-    const couponRate = PREFERRED_YIELDS[item.ticker] ?? 0;
-    const ytm = calculateYTM(couponRate, item.price);
+  const chartData: ChartDataPoint[] = preferredData
+    .map((item) => {
+      const couponRate = PREFERRED_YIELDS[item.ticker] ?? 0;
+      const ytm = calculateYTM(couponRate, item.price);
 
-    return {
-      ticker: item.ticker,
-      couponRate,
-      ytm,
-      coverage: item.coverage,
-      notional: item.notional,
-      price: item.price,
-    };
-  });
+      return {
+        ticker: item.ticker,
+        couponRate,
+        ytm,
+        coverage: item.coverage,
+        notional: item.notional,
+        price: item.price,
+      };
+    })
+    .filter((d) => isFinite(d.coverage) && isFinite(d.ytm) && d.coverage > 0);
 
-  const maxCoverage = Math.max(...chartData.map((d) => d.coverage), COVERAGE_THRESHOLDS.GOOD);
-  const maxYtm = Math.max(...chartData.map((d) => d.ytm));
+  const maxCoverage = chartData.length > 0
+    ? Math.max(...chartData.map((d) => d.coverage), COVERAGE_THRESHOLDS.GOOD)
+    : COVERAGE_THRESHOLDS.GOOD;
+  const maxYtm = chartData.length > 0
+    ? Math.max(...chartData.map((d) => d.ytm))
+    : 0.15;
 
   return (
     <div className="bg-lavender-card rounded-lg border border-lavender-border p-4 mt-4">

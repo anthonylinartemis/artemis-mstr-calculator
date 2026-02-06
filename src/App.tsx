@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useMSTRData } from './hooks/useMSTRData';
 import { usePreferredPrices } from './hooks/usePreferredPrices';
+import { useStriveData } from './hooks/useStriveData';
 import { COVERAGE_THRESHOLDS, STRATEGY_DEFINITIONS } from './lib/constants';
 import { SensitivityTable } from './components/SensitivityTable';
 import { YieldCoverageChart } from './components/YieldCoverageChart';
@@ -53,8 +54,10 @@ const INITIAL_PREF: PrefItem[] = [
   { ticker: 'STRD', notional: 1402 },
 ];
 
+// SATA notional = aggregate liquidation preference (~4,265,000 shares × $100 par)
+// Source: treasury.strive.com — update when new offerings close
 const STRIVE_INITIAL_PREF: PrefItem[] = [
-  { ticker: 'SATA', notional: 500 },
+  { ticker: 'SATA', notional: 426.5 },
 ];
 
 function formatCurrency(value: number): string {
@@ -93,6 +96,7 @@ type TabType = 'mstr' | 'strive' | 'mstr-sensitivity' | 'strive-sensitivity';
 function App() {
   const { data, isLoading } = useMSTRData();
   const { prices: livePrices, isLoading: pricesLoading } = usePreferredPrices();
+  const { data: striveData } = useStriveData();
 
   // Tab state
   const [activeTab, setActiveTab] = useState<TabType>('mstr');
@@ -114,8 +118,8 @@ function App() {
   const [additionalDebt, setAdditionalDebt] = useState(0);
   const [additionalPref, setAdditionalPref] = useState(0);
 
-  // Strive data - BTC holdings per treasury.strive.com (actual BTC count)
-  const [striveBtcHoldings, setStriveBtcHoldings] = useState(13128); // ~13,128 BTC
+  // Strive data - BTC holdings from CoinGecko, USD reserve per treasury.strive.com
+  const [striveBtcHoldings, setStriveBtcHoldings] = useState(13132); // Default, updated live
   const [striveUsdReserve, setStriveUsdReserve] = useState(24); // $24M USD reserve
   const [strivePref, setStrivePref] = useState<PrefItem[]>(STRIVE_INITIAL_PREF);
 
@@ -125,13 +129,19 @@ function App() {
       const price = Math.round(data.btcPrice);
       const holdings = Math.round(data.btcHoldings / 1000);
 
-      // Use live data from MicroStrategy API
       setActualBtcPrice(price);
       setBtcPrice(price);
       setActualBtcHoldings(holdings);
       setBtcHoldings(holdings);
     }
   }, [data]);
+
+  // Update Strive BTC holdings from CoinGecko
+  useEffect(() => {
+    if (striveData?.btcHoldings) {
+      setStriveBtcHoldings(Math.round(striveData.btcHoldings));
+    }
+  }, [striveData]);
 
   // Merge live prices into pref items
   const prefWithPrices = useMemo(
